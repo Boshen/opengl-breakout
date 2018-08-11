@@ -1,6 +1,12 @@
 module Main where
 
-import Lib
+import           Control.Monad.State.Strict
+
+import           Game
+import           State
 
 main :: IO ()
-main = someFunc
+main = do
+  let state = GameState {
+    }
+  evalStateT game state
