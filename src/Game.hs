@@ -12,6 +12,8 @@ import qualified SDL
 import           SDL.Video.OpenGL           (Mode (Normal))
 
 import           Event
+import           Program
+import           Sprite
 import           State
 
 screenWidth, screenHeight :: Int
@@ -27,8 +29,8 @@ create :: Game SDL.Window
 create = do
   SDL.initialize [SDL.InitVideo]
   SDL.HintRenderScaleQuality $= SDL.ScaleLinear
-  SDL.HintMouseRelativeModeWarp $= SDL.MouseWarping
-  SDL.setMouseLocationMode SDL.RelativeLocation
+  -- SDL.HintMouseRelativeModeWarp $= SDL.MouseWarping
+  -- SDL.setMouseLocationMode SDL.RelativeLocation
 
   let
     openGLConfig = SDL.OpenGLConfig
@@ -47,11 +49,15 @@ create = do
   SDL.showWindow window
   SDL.glCreateContext window
 
-  GL.depthFunc $= Just GL.Less -- which is glEnable(GL_DEPTH_TEST)
+  -- GL.depthFunc $= Just GL.Less -- which is glEnable(GL_DEPTH_TEST)
   GL.viewport $=
     ( GL.Position 0 0
     , GL.Size (fromIntegral screenWidth) (fromIntegral screenHeight))
 
+  programs <- liftIO buildPrograms
+  gameState <- get
+  put $ gameState { gamePrograms = programs
+                  }
   return window
 
 destroy :: SDL.Window -> Game ()
@@ -72,10 +78,14 @@ loop window lastFrame = do
   currentFrame <- SDL.time
   let dt = currentFrame - lastFrame
 
+  makeSprites
+  renderSprites
+
   -- clear frame
   liftIO $ do
     SDL.glSwapWindow window
     GL.clearColor $= GL.Color4 0.1 0.1 0.1 1
-    GL.clear [GL.ColorBuffer, GL.DepthBuffer]
+    -- GL.clear [GL.ColorBuffer, GL.DepthBuffer]
+    GL.clear [GL.ColorBuffer]
 
   unless (QuitProgram `elem` actions) (loop window currentFrame)

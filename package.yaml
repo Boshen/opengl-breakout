@@ -8,6 +8,7 @@ copyright:           "2018 Author name here"
 
 extra-source-files:
 - README.md
+- shaders/*
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -21,9 +22,14 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - OpenGL
+- bytestring
+- containers
 - linear
 - mtl
 - sdl2
+- array
+- vector
+- JuicyPixels
 
 library:
   source-dirs: src
