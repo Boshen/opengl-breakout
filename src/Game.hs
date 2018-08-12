@@ -11,9 +11,10 @@ import           SDL                        (($=))
 import qualified SDL
 import           SDL.Video.OpenGL           (Mode (Normal))
 
-import           Event
-import           Program
 import           Block
+import           Event
+import           Mesh
+import           Program
 import           State
 
 game :: Game ()
@@ -51,9 +52,13 @@ create = do
     , GL.Size (fromIntegral sw) (fromIntegral sh)
     )
 
-  programs <- liftIO buildPrograms
   gameState <- get
+  programs <- liftIO buildPrograms
+  textures <- liftIO buildTextures
+  meshes <- liftIO buildMeshes
   put $ gameState { gamePrograms = programs
+                  , gameTextures = textures
+                  , gameMeshes = meshes
                   }
   return window
 

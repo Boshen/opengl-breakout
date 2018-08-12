@@ -9,6 +9,8 @@ data GameState = GameState
   { gamePrograms :: Map String GL.Program
   , gameBlocks  :: Map (V3 Int) Block
   , gameDimension :: (Int, Int)
+  , gameTextures :: Map String GL.TextureObject
+  , gameMeshes :: Map String Mesh
   } deriving (Show)
 
 type Game = StateT GameState IO
@@ -21,8 +23,11 @@ data Action
 data Block = Block
   { blockPos   :: V3 Int
   , blockLevel :: Int
-  , blockVAO   :: Maybe GL.VertexArrayObject
-  , blockVBO   :: Maybe GL.BufferObject
-  , blockDirty :: Bool
   , blockModel  :: M44 Float
+  } deriving (Show)
+
+data Mesh = Mesh
+  { meshVAO :: GL.VertexArrayObject
+  , meshVBO :: GL.BufferObject
+  , meshLength :: GL.NumArrayIndices
   } deriving (Show)

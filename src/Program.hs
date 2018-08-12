@@ -41,3 +41,13 @@ getBlockProgram programs = programs Map.! block
 
 loadTex :: FilePath -> IO GL.TextureObject
 loadTex f = either error id <$> readTexture f
+
+buildTextures :: IO (Map String GL.TextureObject)
+buildTextures = do
+  tx <- loadTex "block.png"
+  GL.textureFilter GL.Texture2D $= ((GL.Linear', Nothing), GL.Linear')
+  texture2DWrap $= (GL.Repeated, GL.ClampToEdge)
+  GL.texture GL.Texture2D $= GL.Enabled
+  GL.activeTexture $= GL.TextureUnit 0
+  GL.textureBinding GL.Texture2D $= Just tx
+  return $ Map.fromList [("block", tx)]
