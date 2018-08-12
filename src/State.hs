@@ -7,7 +7,8 @@ import           Linear
 
 data GameState = GameState
   { gamePrograms :: Map String GL.Program
-  , gameSprites  :: Map (V3 Int) Sprite
+  , gameBlocks  :: Map (V3 Int) Block
+  , gameDimension :: (Int, Int)
   } deriving (Show)
 
 type Game = StateT GameState IO
@@ -17,10 +18,11 @@ data Action
   | QuitProgram
   deriving (Show, Eq)
 
-data Sprite = Sprite
-  { spritePos   :: V3 Int
-  , spriteVAO   :: Maybe GL.VertexArrayObject
-  , spriteVBO   :: Maybe GL.BufferObject
-  , spriteDirty :: Bool
-  , spriteModel  :: M44 Float
+data Block = Block
+  { blockPos   :: V3 Int
+  , blockLevel :: Int
+  , blockVAO   :: Maybe GL.VertexArrayObject
+  , blockVBO   :: Maybe GL.BufferObject
+  , blockDirty :: Bool
+  , blockModel  :: M44 Float
   } deriving (Show)

@@ -9,15 +9,15 @@ import           JuicyTextures
 import           Textures
 import           LoadShaders
 
-sprite = "sprite"
+block = "block"
 
 programs :: [(String, String, String)]
-programs = [(sprite, "./shaders/sprite.vert", "./shaders/sprite.frag")]
+programs = [(block, "./shaders/block.vert", "./shaders/block.frag")]
 
 uniforms :: [(String, GL.AttribLocation)]
 uniforms = map
   (\(i, name) -> (name, GL.AttribLocation i))
-  (zip [0..] ["model", "projection", "image", "spriteColor"])
+  (zip [0..] ["model", "projection", "image", "blockColor"])
 
 buildPrograms :: IO (Map String GL.Program)
 buildPrograms = Map.fromList <$> mapM buildProgram programs
@@ -36,8 +36,8 @@ setUniform program name d = do
   location <- GL.uniformLocation program name
   GL.uniform location $= d
 
-getSpriteProgram :: Map String GL.Program -> GL.Program
-getSpriteProgram programs = programs Map.! sprite
+getBlockProgram :: Map String GL.Program -> GL.Program
+getBlockProgram programs = programs Map.! block
 
 loadTex :: FilePath -> IO GL.TextureObject
 loadTex f = either error id <$> readTexture f

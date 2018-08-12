@@ -13,11 +13,8 @@ import           SDL.Video.OpenGL           (Mode (Normal))
 
 import           Event
 import           Program
-import           Sprite
+import           Block
 import           State
-
-screenWidth, screenHeight :: Int
-(screenWidth, screenHeight) = (800, 600)
 
 game :: Game ()
 game = do
@@ -27,12 +24,12 @@ game = do
 
 create :: Game SDL.Window
 create = do
+  GameState{..} <- get
   SDL.initialize [SDL.InitVideo]
   SDL.HintRenderScaleQuality $= SDL.ScaleLinear
-  -- SDL.HintMouseRelativeModeWarp $= SDL.MouseWarping
-  -- SDL.setMouseLocationMode SDL.RelativeLocation
 
   let
+    (sw, sh) = gameDimension
     openGLConfig = SDL.OpenGLConfig
       { SDL.glColorPrecision = V4 8 8 8 0
       , SDL.glDepthPrecision = 24
@@ -43,16 +40,16 @@ create = do
   window <- SDL.createWindow
     "Breakout"
     SDL.defaultWindow
-      { SDL.windowInitialSize = V2 (fromIntegral screenWidth) (fromIntegral screenHeight)
+      { SDL.windowInitialSize = V2 (fromIntegral sw) (fromIntegral sh)
       , SDL.windowOpenGL = Just openGLConfig
       }
   SDL.showWindow window
   SDL.glCreateContext window
 
-  -- GL.depthFunc $= Just GL.Less -- which is glEnable(GL_DEPTH_TEST)
   GL.viewport $=
     ( GL.Position 0 0
-    , GL.Size (fromIntegral screenWidth) (fromIntegral screenHeight))
+    , GL.Size (fromIntegral sw) (fromIntegral sh)
+    )
 
   programs <- liftIO buildPrograms
   gameState <- get
@@ -78,8 +75,8 @@ loop window lastFrame = do
   currentFrame <- SDL.time
   let dt = currentFrame - lastFrame
 
-  makeSprites
-  renderSprites
+  makeBlocks
+  renderBlocks
 
   -- clear frame
   liftIO $ do

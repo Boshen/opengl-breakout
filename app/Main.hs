@@ -9,6 +9,7 @@ import           State
 main :: IO ()
 main = do
   let state = GameState { gamePrograms = Map.empty
-                        , gameSprites = Map.empty
+                        , gameBlocks = Map.empty
+                        , gameDimension = (800, 600)
                         }
   State.evalStateT game state

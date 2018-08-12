@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Sprite where
+module Block where
 
 import           Control.Monad
 import           Control.Monad.State.Strict
@@ -12,45 +12,62 @@ import           Foreign.Storable
 import qualified Graphics.Rendering.OpenGL  as GL
 import           Linear
 import           SDL                        (($=))
+import Data.Vector (Vector)
+import qualified Data.Vector as V
 
 import           Textures
 import           Program
 import           State
 
-makeSprites :: Game ()
-makeSprites = makeSprite (V3 200 200 0)
+width = 6
+height = 3
 
-makeSprite :: V3 Int -> Game ()
-makeSprite pos = do
+blocks :: Vector Int
+blocks = V.fromList
+  [ 1, 1, 1, 1, 1, 1
+  , 2, 2, 0, 0, 2, 2
+  , 3, 3, 4, 4, 3, 3
+  ]
+
+makeBlocks :: Game ()
+makeBlocks = mapM_ makeBlock [(i, j) | i <- [0..width-1], j <- [0..height-1]]
+
+makeBlock :: (Int, Int) -> Game ()
+makeBlock (i, j) = do
   gameState@GameState{..} <- get
+  let
+    level = blocks V.! (j * width + i)
 
-  case Map.lookup pos gameSprites of
-    Just sprite -> return ()
-    Nothing -> do
-      let
-        rotate = axisAngle (V3 0 0 (1)) (pi / 4)
-        sx = 300
-        sy = 400
-        model =
-          mkTransformationMat (identity :: M33 Float) (fromIntegral <$> pos)
-          !*! mkTransformationMat (identity :: M33 Float) (V3 (sx / 2) (sy / 2) 0)
-          !*! mkTransformation rotate (V3 (-1 * sx / 2) (-1 * sy / 2) 0)
-          !*! scaled (V4 sx sy 1 1)
+  when (level > 0) $ do
 
-        sprite = Sprite { spritePos = pos
-                        , spriteVAO = Nothing
-                        , spriteVBO = Nothing
-                        , spriteModel = model
-                        , spriteDirty = True
-                        }
-      put gameState { gameSprites = Map.insert pos sprite gameSprites }
+    let
+      (sw, sh) = gameDimension
+      pos = V3 (i * sw `div` width) (j * sh `div` (4 * height)) 0
+      sx = fromIntegral sw / fromIntegral width
+      sy = fromIntegral sh / fromIntegral height / 4
+      rotate = axisAngle (V3 0 0 1) 0
 
-renderSprites :: Game ()
-renderSprites = do
+      model =
+        mkTransformationMat (identity :: M33 Float) (fromIntegral <$> pos)
+        !*! mkTransformationMat (identity :: M33 Float) (V3 (sx / 2) (sy / 2) 0)
+        !*! mkTransformation rotate (V3 (-1 * sx / 2) (-1 * sy / 2) 0)
+        !*! scaled (V4 sx sy 1 1)
+
+      block = Block { blockPos = pos
+                      , blockLevel = level
+                      , blockVAO = Nothing
+                      , blockVBO = Nothing
+                      , blockModel = model
+                      , blockDirty = True
+                      }
+    put gameState { gameBlocks = Map.insert pos block gameBlocks }
+
+renderBlocks :: Game ()
+renderBlocks = do
   GameState{..} <- get
 
   -- setup program
-  let program = getSpriteProgram gamePrograms
+  let program = getBlockProgram gamePrograms
   GL.currentProgram $= Just program
 
   -- set uniforms
@@ -58,28 +75,33 @@ renderSprites = do
     glProjectionMatrix <- toGlMatrix $ ortho 0 800 600 0 (-1) 1
     setUniform program "projection" glProjectionMatrix
 
+  -- render each block
+  mapM_ renderBlock gameBlocks
 
-  -- render each sprite
-  mapM_ renderSprite gameSprites
+blockColor :: Int -> GL.Vertex3 Float
+blockColor 5 = GL.Vertex3 1 0.5 0
+blockColor 4 = GL.Vertex3 0.8 0.8 0.4
+blockColor 3 = GL.Vertex3 0 0.7 0
+blockColor 2 = GL.Vertex3 0.2 0.6 1
+blockColor _ = GL.Vertex3 1 1 1
 
-renderSprite :: Sprite -> Game ()
-renderSprite sprite@Sprite{..} = do
+renderBlock :: Block -> Game ()
+renderBlock block@Block{..} = do
   gameState@GameState{..} <- get
 
   (Just program) <- GL.get GL.currentProgram
 
-  -- reposition and rescale each srpite
   liftIO $ do
-    glModelMatrix <- toGlMatrix spriteModel
+    glModelMatrix <- toGlMatrix blockModel
     setUniform program "model" glModelMatrix
-    setUniform program "spriteColor" (GL.Vertex3 0 1 0 :: GL.Vertex3 Float)
+    setUniform program "blockColor" (blockColor blockLevel)
 
-  -- redraw the sprite if its not updated
+  -- redraw the block if its not updated
   -- otherwise create indices for drawing
-  if not spriteDirty
+  if not blockDirty
   then
     liftIO $ do
-      GL.bindVertexArrayObject $= spriteVAO
+      GL.bindVertexArrayObject $= blockVAO
       GL.drawArrays GL.Triangles 0 6
   else do
     vao <- GL.genObjectName
@@ -98,7 +120,7 @@ renderSprite sprite@Sprite{..} = do
 
       GL.drawArrays GL.Triangles 0 6
 
-      tx <- loadTex "awesomeface.png"
+      tx <- loadTex "block.png"
       GL.textureFilter GL.Texture2D $= ((GL.Linear', Nothing), GL.Linear')
       texture2DWrap $= (GL.Repeated, GL.ClampToEdge)
       GL.texture GL.Texture2D $= GL.Enabled
@@ -106,11 +128,11 @@ renderSprite sprite@Sprite{..} = do
       GL.textureBinding GL.Texture2D $= Just tx
 
     -- no need to recreate buffer next time
-    let updatedSprite = sprite { spriteVAO = Just vao
-                                , spriteVBO = Just vbo
-                                , spriteDirty = False
+    let updatedBlock = block { blockVAO = Just vao
+                                , blockVBO = Just vbo
+                                , blockDirty = False
                                 }
-    put $ gameState { gameSprites = Map.insert spritePos updatedSprite gameSprites }
+    put $ gameState { gameBlocks = Map.insert blockPos updatedBlock gameBlocks }
 
 floatSize = fromIntegral . sizeOf $ (0 :: Float)
 
