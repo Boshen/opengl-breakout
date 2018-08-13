@@ -19,6 +19,7 @@ type Game = StateT GameState IO
 data Action
   = NoOp
   | QuitProgram
+  | Move Int
   deriving (Show, Eq)
 
 data Block = Block
@@ -28,7 +29,7 @@ data Block = Block
   } deriving (Show)
 
 data Paddle = Paddle
-  { paddlePos   :: Float
+  { paddlePos   :: Int
   , paddleModel :: M44 Float
   } deriving (Show)
 

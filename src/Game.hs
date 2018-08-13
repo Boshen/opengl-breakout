@@ -62,7 +62,7 @@ create = do
                   , gameMeshes = meshes
                   }
   makeBlocks
-  makePaddle
+  makePaddle 0
   return window
 
 destroy :: SDL.Window -> Game ()
@@ -82,6 +82,8 @@ loop window lastFrame = do
 
   currentFrame <- SDL.time
   let dt = currentFrame - lastFrame
+
+  mapM_ updatePaddle actions
 
   renderBlocks
   renderPaddle

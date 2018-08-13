@@ -14,5 +14,9 @@ parseEvent event =
     KeyboardEvent d ->
       case keysymKeycode . keyboardEventKeysym $ d of
         KeycodeEscape -> QuitProgram
+        KeycodeD      -> Move 1
+        KeycodeA      -> Move (-1)
+        KeycodeLeft   -> Move 1
+        KeycodeRight  -> Move (-1)
         _             -> NoOp
     _ -> NoOp

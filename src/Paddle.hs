@@ -12,21 +12,31 @@ import           SDL                        (($=))
 import           Program
 import           State
 
-makePaddle :: Game ()
-makePaddle = do
+makePaddle :: Int -> Game ()
+makePaddle x = do
   gameState@GameState{..} <- get
   let
     (sw, sh) = fromIntegral <$> gameDimension
     sx = 100
     sy = 20
     model =
-      mkTransformationMat (identity :: M33 Float) (V3 0 (sh - sy) 0)
+      mkTransformationMat (identity :: M33 Float) (V3 (fromIntegral x) (sh - sy) 0)
       !*! scaled (V4 sx sy 1 1)
-    paddle = Paddle { paddlePos = sh
+    paddle = Paddle { paddlePos = x
                     , paddleModel = model
                     }
 
   put gameState { gamePaddle = Just paddle }
+
+updatePaddle :: Action -> Game ()
+updatePaddle action = do
+  gameState@GameState{..} <- get
+  let
+    (sw, sh) = fromIntegral <$> gameDimension
+    pos = paddlePos . fromJust $ gamePaddle
+  case action of
+    Move dx -> makePaddle (max 0 . min (sw - 100) $ pos + dx * 15)
+    _ -> return ()
 
 renderPaddle :: Game ()
 renderPaddle = do
