@@ -2,15 +2,10 @@
 
 module Block where
 
-import           Control.Monad
 import           Control.Monad.State.Strict
-import qualified Data.Foldable              as Foldable
 import qualified Data.Map.Strict            as Map
 import           Data.Vector                (Vector)
 import qualified Data.Vector                as V
-import           Foreign.Marshal.Array
-import           Foreign.Ptr
-import           Foreign.Storable
 import qualified Graphics.Rendering.OpenGL  as GL
 import           Linear
 import           SDL                        (($=))
@@ -84,6 +79,7 @@ renderBlock block@Block{..} = do
   gameState@GameState{..} <- get
   let
     Mesh{..} = gameMeshes Map.! "block"
+    tex = gameTextures Map.! "block"
 
   (Just program) <- GL.get GL.currentProgram
 
@@ -92,13 +88,6 @@ renderBlock block@Block{..} = do
     setUniform program "model" glModelMatrix
     setUniform program "blockColor" (blockColor blockLevel)
 
+    GL.textureBinding GL.Texture2D $= Just tex
     GL.bindVertexArrayObject $= Just meshVAO
     GL.drawArrays GL.Triangles 0 meshLength
-
-toGlMatrix :: M44 Float -> IO (GL.GLmatrix GL.GLfloat)
-toGlMatrix mat =
-  GL.withNewMatrix GL.RowMajor $ \glPtr ->
-    zipWithM_
-      (pokeElemOff glPtr)
-      [0 ..]
-      (concat $ Foldable.toList <$> Foldable.toList mat)

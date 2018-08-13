@@ -14,6 +14,7 @@ import           SDL.Video.OpenGL           (Mode (Normal))
 import           Block
 import           Event
 import           Mesh
+import           Paddle
 import           Program
 import           State
 
@@ -60,6 +61,8 @@ create = do
                   , gameTextures = textures
                   , gameMeshes = meshes
                   }
+  makeBlocks
+  makePaddle
   return window
 
 destroy :: SDL.Window -> Game ()
@@ -80,8 +83,8 @@ loop window lastFrame = do
   currentFrame <- SDL.time
   let dt = currentFrame - lastFrame
 
-  makeBlocks
   renderBlocks
+  renderPaddle
 
   -- clear frame
   liftIO $ do
