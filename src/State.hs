@@ -38,7 +38,8 @@ data Block = Block
   } deriving (Show)
 
 data Paddle = Paddle
-  { paddlePos   :: Float
+  { paddlePos   :: V3 Float
+  , paddleSize :: (Float, Float)
   , paddleModel :: M44 Float
   } deriving (Show)
 

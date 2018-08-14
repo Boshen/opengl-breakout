@@ -86,8 +86,9 @@ loop window lastFrame = do
   let dt = currentFrame - lastFrame
 
   mapM_ updatePaddle actions
-  updateBall dt
   makeBlockCollison
+  makePaddleCollison
+  updateBall dt
 
   renderBlocks
   renderPaddle
