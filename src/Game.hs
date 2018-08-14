@@ -4,7 +4,7 @@
 module Game where
 
 import           Control.Monad.State.Strict
-
+import           Data.Maybe
 import qualified Graphics.Rendering.OpenGL  as GL
 import           Linear
 import           SDL                        (($=))
@@ -64,7 +64,7 @@ create = do
                   }
   makeBlocks
   makePaddle 0
-  makeBall (V3 40 (sh - 30) 0) ballInitialVelocity
+  makeBall (V3 40 (sh - 40) 0) (V3 0 0 0)
   return window
 
 destroy :: SDL.Window -> Game ()
@@ -87,13 +87,16 @@ loop window lastFrame = do
 
   mapM_ updatePaddle actions
   updateBall dt
+  makeBlockCollison
 
   renderBlocks
   renderPaddle
   renderBall
 
-  when (StartGame `elem` actions) $ do
-    put $ gameState { gameStatus = GameStarted }
+  when (StartGame `elem` actions) $
+    put $ gameState { gameStatus = GameStarted
+                    , gameBall = Just $ (fromJust gameBall) { ballVelocity = ballInitialVelocity }
+                    }
 
   -- clear frame
   liftIO $ do

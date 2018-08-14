@@ -4,6 +4,7 @@ module Block where
 
 import           Control.Monad.State.Strict
 import qualified Data.Map.Strict            as Map
+import           Data.Maybe
 import           Data.Vector                (Vector)
 import qualified Data.Vector                as V
 import qualified Graphics.Rendering.OpenGL  as GL
@@ -50,9 +51,10 @@ makeBlock (i, j) = do
         !*! scaled (V4 sx sy 1 1)
 
       block = Block { blockPos = pos
-                      , blockLevel = level
-                      , blockModel = model
-                      }
+                    , blockSize = (sx, sy)
+                    , blockLevel = level
+                    , blockModel = model
+                    }
     put gameState { gameBlocks = Map.insert pos block gameBlocks }
 
 renderBlocks :: Game ()
@@ -92,3 +94,23 @@ renderBlock block@Block{..} = do
     GL.textureBinding GL.Texture2D $= Just tex
     GL.bindVertexArrayObject $= Just meshVAO
     GL.drawArrays GL.Triangles 0 meshLength
+
+makeBlockCollison :: Game ()
+makeBlockCollison = do
+  gameState@GameState{..} <- get
+  let
+    blocks = Map.filter (not . checkCollison (fromJust gameBall)) gameBlocks
+  put $ gameState { gameBlocks = blocks }
+
+checkCollison :: Ball -> Block -> Bool
+checkCollison Ball{..} Block{..} =
+  let
+    V3 px1 py1 _ = ballPos
+    sx1 = ballRadius
+    sy1 = sx1
+    V3 px2 py2 _ = blockPos
+    (sx2, sy2) = blockSize
+    collisionX = px1 + sx1 >= px2 && px2 + sx2 >= px1
+    collisionY = py1 + sy1 >= py2 && py2 + sy2 >= py1
+  in
+    collisionX && collisionY

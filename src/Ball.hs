@@ -12,21 +12,20 @@ import           SDL                        (($=))
 import           Program
 import           State
 
-ballRadius :: Float
-ballRadius = 20
-
 ballInitialVelocity :: V3 Float
-ballInitialVelocity = V3 5 (-5) 0
+ballInitialVelocity = V3 3 (-3) 0
 
 makeBall :: V3 Float -> V3 Float -> Game ()
 makeBall pos velocity = do
   gameState@GameState{..} <- get
   let
+    radius = 20
     (sw, sh) = gameDimension
     model =
       mkTransformationMat (identity :: M33 Float) pos
-      !*! scaled (V4 ballRadius ballRadius 1 1)
+      !*! scaled (V4 radius radius 1 1)
     ball = Ball { ballPos = pos
+                , ballRadius = radius
                 , ballVelocity = velocity
                 , ballModel = model
                 }

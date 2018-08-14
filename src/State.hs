@@ -33,6 +33,7 @@ data Action
 data Block = Block
   { blockPos   :: V3 Float
   , blockLevel :: Int
+  , blockSize  :: (Float, Float)
   , blockModel :: M44 Float
   } deriving (Show)
 
@@ -49,6 +50,7 @@ data Mesh = Mesh
 
 data Ball = Ball
   { ballPos      :: V3 Float
+  , ballRadius   :: Float
   , ballVelocity :: V3 Float
   , ballModel    :: M44 Float
   } deriving (Show)
