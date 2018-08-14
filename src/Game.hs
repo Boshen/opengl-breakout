@@ -11,6 +11,7 @@ import           SDL                        (($=))
 import qualified SDL
 import           SDL.Video.OpenGL           (Mode (Normal))
 
+import           Ball
 import           Block
 import           Event
 import           Mesh
@@ -63,6 +64,7 @@ create = do
                   }
   makeBlocks
   makePaddle 0
+  makeBall (V3 40 (sh - 30) 0) ballInitialVelocity
   return window
 
 destroy :: SDL.Window -> Game ()
@@ -84,9 +86,14 @@ loop window lastFrame = do
   let dt = currentFrame - lastFrame
 
   mapM_ updatePaddle actions
+  updateBall dt
 
   renderBlocks
   renderPaddle
+  renderBall
+
+  when (StartGame `elem` actions) $ do
+    put $ gameState { gameStatus = GameStarted }
 
   -- clear frame
   liftIO $ do

@@ -18,5 +18,6 @@ parseEvent event =
         KeycodeA      -> Move (-1)
         KeycodeLeft   -> Move 1
         KeycodeRight  -> Move (-1)
+        KeycodeSpace  -> StartGame
         _             -> NoOp
     _ -> NoOp

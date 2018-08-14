@@ -2,10 +2,10 @@
 
 module Paddle where
 
-import Data.Maybe
-import qualified Graphics.Rendering.OpenGL  as GL
-import qualified Data.Map.Strict            as Map
 import           Control.Monad.State.Strict
+import qualified Data.Map.Strict            as Map
+import           Data.Maybe
+import qualified Graphics.Rendering.OpenGL  as GL
 import           Linear
 import           SDL                        (($=))
 
@@ -36,7 +36,7 @@ updatePaddle action = do
     pos = paddlePos . fromJust $ gamePaddle
   case action of
     Move dx -> makePaddle (max 0 . min (sw - 100) $ pos + dx * 15)
-    _ -> return ()
+    _       -> return ()
 
 renderPaddle :: Game ()
 renderPaddle = do

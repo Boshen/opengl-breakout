@@ -49,7 +49,7 @@ loadTex :: FilePath -> IO GL.TextureObject
 loadTex f = either error id <$> readTexture f
 
 buildTextures :: IO (Map String GL.TextureObject)
-buildTextures = Map.fromList <$> mapM buildTexture ["block", "paddle"]
+buildTextures = Map.fromList <$> mapM buildTexture ["block", "paddle", "awesomeface"]
 
 buildTexture :: String -> IO (String, GL.TextureObject)
 buildTexture name = do

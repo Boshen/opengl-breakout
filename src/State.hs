@@ -12,14 +12,19 @@ data GameState = GameState
   , gameDimension :: (Int, Int)
   , gameTextures  :: Map String GL.TextureObject
   , gameMeshes    :: Map String Mesh
+  , gameBall      :: Maybe Ball
+  , gameStatus    :: GameStatus
   } deriving (Show)
 
 type Game = StateT GameState IO
+
+data GameStatus = GameStarted | GameStopped deriving (Show)
 
 data Action
   = NoOp
   | QuitProgram
   | Move Int
+  | StartGame
   deriving (Show, Eq)
 
 data Block = Block
@@ -37,4 +42,10 @@ data Mesh = Mesh
   { meshVAO    :: GL.VertexArrayObject
   , meshVBO    :: GL.BufferObject
   , meshLength :: GL.NumArrayIndices
+  } deriving (Show)
+
+data Ball = Ball
+  { ballPos      :: V3 Int
+  , ballVelocity :: V3 Int
+  , ballModel    :: M44 Float
   } deriving (Show)
