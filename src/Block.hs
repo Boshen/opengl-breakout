@@ -14,6 +14,7 @@ import           Program
 import           State
 import           Textures
 
+width, height :: Int
 width = 6
 height = 3
 
@@ -37,13 +38,13 @@ makeBlock (i, j) = do
 
     let
       (sw, sh) = gameDimension
-      pos = V3 (i * sw `div` width) (j * sh `div` (4 * height)) 0
-      sx = fromIntegral sw / fromIntegral width
-      sy = fromIntegral sh / fromIntegral height / 4
+      pos = V3 (fromIntegral i * sw / fromIntegral width) (fromIntegral j * sh / (4 * fromIntegral height)) 0
+      sx = sw / fromIntegral width
+      sy = sh / fromIntegral height / 4
       rotate = axisAngle (V3 0 0 1) 0
 
       model =
-        mkTransformationMat (identity :: M33 Float) (fromIntegral <$> pos)
+        mkTransformationMat (identity :: M33 Float) pos
         !*! mkTransformationMat (identity :: M33 Float) (V3 (sx / 2) (sy / 2) 0)
         !*! mkTransformation rotate (V3 (-1 * sx / 2) (-1 * sy / 2) 0)
         !*! scaled (V4 sx sy 1 1)

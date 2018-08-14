@@ -7,9 +7,9 @@ import           Linear
 
 data GameState = GameState
   { gamePrograms  :: Map String GL.Program
-  , gameBlocks    :: Map (V3 Int) Block
+  , gameBlocks    :: Map (V3 Float) Block
   , gamePaddle    :: Maybe Paddle
-  , gameDimension :: (Int, Int)
+  , gameDimension :: (Float, Float)
   , gameTextures  :: Map String GL.TextureObject
   , gameMeshes    :: Map String Mesh
   , gameBall      :: Maybe Ball
@@ -18,23 +18,26 @@ data GameState = GameState
 
 type Game = StateT GameState IO
 
-data GameStatus = GameStarted | GameStopped deriving (Show)
+data GameStatus
+  = GameStarted
+  | GameStopped
+  deriving (Show)
 
 data Action
   = NoOp
   | QuitProgram
-  | Move Int
+  | Move Float
   | StartGame
   deriving (Show, Eq)
 
 data Block = Block
-  { blockPos   :: V3 Int
+  { blockPos   :: V3 Float
   , blockLevel :: Int
   , blockModel :: M44 Float
   } deriving (Show)
 
 data Paddle = Paddle
-  { paddlePos   :: Int
+  { paddlePos   :: Float
   , paddleModel :: M44 Float
   } deriving (Show)
 
@@ -45,7 +48,7 @@ data Mesh = Mesh
   } deriving (Show)
 
 data Ball = Ball
-  { ballPos      :: V3 Int
-  , ballVelocity :: V3 Int
+  { ballPos      :: V3 Float
+  , ballVelocity :: V3 Float
   , ballModel    :: M44 Float
   } deriving (Show)

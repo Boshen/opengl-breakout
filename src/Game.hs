@@ -43,7 +43,7 @@ create = do
   window <- SDL.createWindow
     "Breakout"
     SDL.defaultWindow
-      { SDL.windowInitialSize = V2 (fromIntegral sw) (fromIntegral sh)
+      { SDL.windowInitialSize = V2 (round sw) (round sh)
       , SDL.windowOpenGL = Just openGLConfig
       }
   SDL.showWindow window
@@ -51,7 +51,7 @@ create = do
 
   GL.viewport $=
     ( GL.Position 0 0
-    , GL.Size (fromIntegral sw) (fromIntegral sh)
+    , GL.Size (round sw) (round sh)
     )
 
   gameState <- get
