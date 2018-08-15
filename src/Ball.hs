@@ -13,7 +13,7 @@ import           Program
 import           State
 
 ballInitialVelocity :: V3 Float
-ballInitialVelocity = V3 3 (-3) 0
+ballInitialVelocity = V3 8 (-8) 0
 
 makeBall :: V3 Float -> V3 Float -> Game ()
 makeBall pos velocity = do
@@ -66,3 +66,16 @@ renderBall = do
     GL.textureBinding GL.Texture2D $= Just tex
     GL.bindVertexArrayObject $= Just meshVAO
     GL.drawArrays GL.Triangles 0 meshLength
+
+checkBallHitBottom :: Game ()
+checkBallHitBottom = do
+  gameState@GameState{..} <- get
+  let
+    ball@Ball{..} = fromJust gameBall
+    (sw, sh) = gameDimension
+    (V3 x y z) = ballPos
+    (V3 dx dy dz) = ballVelocity
+  when (y + dy + ballRadius >= sh) $
+    put $ gameState { gameStatus = GameStopped
+                    , gameBall = Just $ ball { ballVelocity = V3 0 0 0 }
+                    }

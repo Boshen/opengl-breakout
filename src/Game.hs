@@ -88,13 +88,14 @@ loop window lastFrame = do
   mapM_ updatePaddle actions
   makeBlockCollison
   makePaddleCollison
+  checkBallHitBottom
   updateBall dt
 
   renderBlocks
   renderPaddle
   renderBall
 
-  when (StartGame `elem` actions) $
+  when (StartGame `elem` actions && gameStatus == GameStopped) $
     put $ gameState { gameStatus = GameStarted
                     , gameBall = Just $ (fromJust gameBall) { ballVelocity = ballInitialVelocity }
                     }

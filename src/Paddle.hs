@@ -72,8 +72,8 @@ makePaddleCollison = do
       centerBoard = pos + px / 2
       distance = bx + ballRadius - centerBoard
       percentage = distance / (px / 2)
-      v = V3 (3 * percentage * 2) (-1 * bvy) bvz
-      v' = (signorm v) ^* (norm ballVelocity)
+      v = V3 (3 * percentage * 2) (-1 * abs bvy) bvz
+      v' = signorm v ^* norm ballVelocity
     put $ gameState { gameBall = Just $ ball { ballVelocity = v' } }
 
 checkCollison :: Ball -> Paddle -> Bool

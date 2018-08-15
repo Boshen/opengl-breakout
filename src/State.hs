@@ -21,7 +21,7 @@ type Game = StateT GameState IO
 data GameStatus
   = GameStarted
   | GameStopped
-  deriving (Show)
+  deriving (Show, Eq)
 
 data Action
   = NoOp
