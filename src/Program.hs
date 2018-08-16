@@ -1,29 +1,28 @@
 module Program where
 
-import           Foreign.Marshal.Array
-import           Foreign.Ptr
-import           Foreign.Storable
 import           Control.Monad
-import qualified Data.Foldable              as Foldable
+import qualified Data.Foldable             as Foldable
 import           Data.Map.Strict           (Map)
 import qualified Data.Map.Strict           as Map
+import           Graphics.Rendering.OpenGL (($=))
 import qualified Graphics.Rendering.OpenGL as GL
-import           SDL                       (($=))
 import           Linear
 
 import           JuicyTextures
-import           Textures
 import           LoadShaders
+import           Textures
 
+block :: String
 block = "block"
 
 programs :: [(String, String, String)]
 programs = [(block, "./shaders/block.vert", "./shaders/block.frag")]
 
 uniforms :: [(String, GL.AttribLocation)]
-uniforms = map
-  (\(i, name) -> (name, GL.AttribLocation i))
-  (zip [0..] ["model", "projection", "image", "blockColor"])
+uniforms =
+  map
+    (\(i, name) -> (name, GL.AttribLocation i))
+    (zip [0 ..] ["model", "projection", "image", "blockColor"])
 
 buildPrograms :: IO (Map String GL.Program)
 buildPrograms = Map.fromList <$> mapM buildProgram programs
@@ -35,21 +34,23 @@ buildProgram (name, vert, frag) = do
       [ ShaderInfo GL.VertexShader (FileSource vert)
       , ShaderInfo GL.FragmentShader (FileSource frag)
       ]
-  mapM_ (\(name, loc) -> GL.attribLocation program name $= loc) uniforms
+  mapM_ (\(nm, loc) -> GL.attribLocation program nm $= loc) uniforms
   return (name, program)
 
+setUniform :: GL.Uniform a => GL.Program -> String -> a -> IO ()
 setUniform program name d = do
   location <- GL.uniformLocation program name
   GL.uniform location $= d
 
 getBlockProgram :: Map String GL.Program -> GL.Program
-getBlockProgram programs = programs Map.! block
+getBlockProgram pgrms = pgrms Map.! block
 
 loadTex :: FilePath -> IO GL.TextureObject
 loadTex f = either error id <$> readTexture f
 
 buildTextures :: IO (Map String GL.TextureObject)
-buildTextures = Map.fromList <$> mapM buildTexture ["block", "paddle", "awesomeface"]
+buildTextures =
+  Map.fromList <$> mapM buildTexture ["block", "paddle", "awesomeface"]
 
 buildTexture :: String -> IO (String, GL.TextureObject)
 buildTexture name = do
@@ -61,9 +62,4 @@ buildTexture name = do
   return (name, tx)
 
 toGlMatrix :: M44 Float -> IO (GL.GLmatrix GL.GLfloat)
-toGlMatrix mat =
-  GL.withNewMatrix GL.RowMajor $ \glPtr ->
-    zipWithM_
-      (pokeElemOff glPtr)
-      [0 ..]
-      (concat $ Foldable.toList <$> Foldable.toList mat)
+toGlMatrix = GL.newMatrix GL.RowMajor . (Foldable.toList >=> Foldable.toList)

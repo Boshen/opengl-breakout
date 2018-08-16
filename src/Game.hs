@@ -4,10 +4,9 @@
 module Game where
 
 import           Control.Monad.State.Strict
-import           Data.Maybe
+import           Graphics.Rendering.OpenGL  (($=))
 import qualified Graphics.Rendering.OpenGL  as GL
 import           Linear
-import           SDL                        (($=))
 import qualified SDL
 import           SDL.Video.OpenGL           (Mode (Normal))
 
@@ -19,19 +18,20 @@ import           Paddle
 import           Program
 import           State
 
-game :: Game ()
+game :: IO ()
 game = do
-  window <- create
-  play window
+  (window, st) <- create
+  play window st
   destroy window
 
-create :: Game SDL.Window
+create :: IO (SDL.Window, GameState)
 create = do
-  GameState{..} <- get
+  -- GameState{..} <- get
   SDL.initialize [SDL.InitVideo]
   SDL.HintRenderScaleQuality $= SDL.ScaleLinear
 
   let
+    gameDimension = (800, 600)
     (sw, sh) = gameDimension
     openGLConfig = SDL.OpenGLConfig
       { SDL.glColorPrecision = V4 8 8 8 0
@@ -47,33 +47,36 @@ create = do
       , SDL.windowOpenGL = Just openGLConfig
       }
   SDL.showWindow window
-  SDL.glCreateContext window
+  _ <- SDL.glCreateContext window
 
   GL.viewport $=
     ( GL.Position 0 0
     , GL.Size (round sw) (round sh)
     )
 
-  gameState <- get
-  programs <- liftIO buildPrograms
+  prgs <- liftIO buildPrograms
   textures <- liftIO buildTextures
   meshes <- liftIO buildMeshes
-  put $ gameState { gamePrograms = programs
-                  , gameTextures = textures
-                  , gameMeshes = meshes
-                  }
-  makeBlocks
-  makePaddle 0
-  makeBall (V2 40 (sh - 40)) (V2 0 0)
-  return window
+  let st = GameState { gamePrograms = prgs
+                     , gameBlocks = makeBlocks gameDimension
+                     , gamePaddle = makePaddle gameDimension 0
+                     , gameBall = makeBall (V2 40 (sh - 40)) (V2 0 0)
+                     , gameDimension = gameDimension
+                     , gameTextures = textures
+                     , gameMeshes = meshes
+                     , gameStatus = GameStopped
+                     }
+  return (window, st)
 
-destroy :: SDL.Window -> Game ()
+destroy :: SDL.Window -> IO ()
 destroy window = do
   SDL.destroyWindow window
   SDL.quit
 
-play :: SDL.Window -> Game ()
-play window = SDL.time >>= loop window
+play :: SDL.Window -> GameState -> IO ()
+play window st = do
+  time <- SDL.time
+  evalStateT (loop window time) st
 
 loop :: SDL.Window -> Float -> Game ()
 loop window lastFrame = do
@@ -97,7 +100,7 @@ loop window lastFrame = do
 
   when (StartGame `elem` actions && gameStatus == GameStopped) $
     put $ gameState { gameStatus = GameStarted
-                    , gameBall = Just $ (fromJust gameBall) { ballVelocity = ballInitialVelocity }
+                    , gameBall = gameBall { ballVelocity = ballInitialVelocity }
                     }
 
   -- clear frame

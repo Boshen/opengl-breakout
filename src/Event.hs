@@ -16,8 +16,8 @@ parseEvent event =
         KeycodeEscape -> QuitProgram
         KeycodeD      -> Move 1
         KeycodeA      -> Move (-1)
-        KeycodeLeft   -> Move 1
-        KeycodeRight  -> Move (-1)
+        KeycodeLeft   -> Move (-1)
+        KeycodeRight  -> Move 1
         KeycodeSpace  -> StartGame
         _             -> NoOp
     _ -> NoOp

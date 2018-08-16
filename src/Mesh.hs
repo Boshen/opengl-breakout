@@ -5,9 +5,8 @@ import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict            as Map
 import           Foreign.Marshal.Array
 import           Foreign.Ptr
-import           Foreign.Storable
 import qualified Graphics.Rendering.OpenGL  as GL
-import           SDL                        (($=))
+import           Graphics.Rendering.OpenGL (($=))
 
 import           State
 

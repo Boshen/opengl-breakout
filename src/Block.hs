@@ -2,20 +2,20 @@
 
 module Block where
 
+import           Control.Lens
 import           Control.Monad.State.Strict
 import           Data.Foldable              (maximumBy)
 import qualified Data.Map.Strict            as Map
-import           Data.Maybe
+import Data.Map.Strict (Map)
 import           Data.Ord                   (comparing)
 import           Data.Vector                (Vector)
 import qualified Data.Vector                as V
+import           Graphics.Rendering.OpenGL  (($=))
 import qualified Graphics.Rendering.OpenGL  as GL
 import           Linear
-import           SDL                        (($=))
 
 import           Program
 import           State
-import           Textures
 
 width, height :: Int
 width = 6
@@ -28,37 +28,25 @@ blocks = V.fromList
   , 3, 3, 4, 4, 3, 3
   ]
 
-makeBlocks :: Game ()
-makeBlocks = mapM_ makeBlock [(i, j) | i <- [0..width-1], j <- [0..height-1]]
+makeBlocks :: (Float, Float) -> Map (V2 Float) Block
+makeBlocks dimen = Map.fromList $ map (makeBlock dimen) [(i, j) | i <- [0..width-1], j <- [0..height-1]]
 
-makeBlock :: (Int, Int) -> Game ()
-makeBlock (i, j) = do
-  gameState@GameState{..} <- get
-  let
-    level = blocks V.! (j * width + i)
+makeBlock :: (Float, Float) -> (Int, Int) -> (V2 Float, Block)
+makeBlock gameDimension (i, j) =
+  let level = blocks V.! (j * width + i)
 
-  when (level > 0) $ do
-
-    let
       (sw, sh) = gameDimension
       x = fromIntegral i * sw / fromIntegral width
       y = fromIntegral j * sh / (4 * fromIntegral height)
       sx = sw / fromIntegral width
       sy = sh / fromIntegral height / 4
-      rotate = axisAngle (V3 0 0 1) 0
 
-      model =
-        mkTransformationMat (identity :: M33 Float) (V3 x y 0)
-        !*! mkTransformationMat (identity :: M33 Float) (V3 (sx / 2) (sy / 2) 0)
-        !*! mkTransformation rotate (V3 (-1 * sx / 2) (-1 * sy / 2) 0)
-        !*! scaled (V4 sx sy 1 1)
-
-      block = Block { blockPos = V2 x y
-                    , blockSize = (sx, sy)
+      blk = Block { blockPos = V2 x y
+                    , blockSize = V2 sx sy
                     , blockLevel = level
-                    , blockModel = model
                     }
-    put gameState { gameBlocks = Map.insert (V2 x y) block gameBlocks }
+  in
+    (V2 x y, blk)
 
 renderBlocks :: Game ()
 renderBlocks = do
@@ -81,11 +69,17 @@ blockColor 2 = GL.Vertex3 0.2 0.6 1
 blockColor _ = GL.Vertex3 1 1 1
 
 renderBlock :: Block -> Game ()
-renderBlock block@Block{..} = do
-  gameState@GameState{..} <- get
+renderBlock Block{..} = do
+  GameState{..} <- get
   let
     Mesh{..} = gameMeshes Map.! "block"
     tex = gameTextures Map.! "block"
+    rot = axisAngle (V3 0 0 1) 0
+    blockModel =
+      mkTransformationMat (identity :: M33 Float) (V3 (blockPos^._x) (blockPos^._y) 0)
+      !*! mkTransformationMat (identity :: M33 Float) (V3 (blockSize^._x / 2) (blockSize^._y / 2) 0)
+      !*! mkTransformation rot (V3 (-1 * (blockSize^._x) / 2) (-1 * (blockSize^._y) / 2) 0)
+      !*! scaled (V4 (blockSize^._x) (blockSize^._y) 1 1)
 
   (Just program) <- GL.get GL.currentProgram
 
@@ -102,10 +96,10 @@ makeBlockCollison :: Game ()
 makeBlockCollison = do
   gameState@GameState{..} <- get
   let
-    ball@Ball{..} = fromJust gameBall
-  forM_ gameBlocks $ \block -> do
+    ball@Ball{..} = gameBall
+  forM_ gameBlocks $ \blk -> do
     let
-      (collision, dir, V2 dx dy) = checkCollison ball block
+      (collision, dir, V2 dx dy) = checkCollison ball blk
     when collision $ do
       let
         (dp, dv) = if dir == LEFT || dir == RIGHT
@@ -114,8 +108,8 @@ makeBlockCollison = do
         updatedBall = ball { ballPos = ballPos + dp
                           , ballVelocity = ballVelocity * dv
                           }
-      put $ gameState { gameBall = Just updatedBall
-                      , gameBlocks = Map.delete (blockPos block) gameBlocks
+      put $ gameState { gameBall = updatedBall
+                      , gameBlocks = Map.delete (blockPos blk) gameBlocks
                       }
 
 clamp :: V2 Float -> V2 Float -> V2 Float -> V2 Float
@@ -124,10 +118,10 @@ clamp (V2 x y) (V2 minx miny) (V2 maxx maxy) = V2 (min maxx . max minx $ x) (min
 checkCollison :: Ball -> Block -> (Bool, Direction, V2 Float)
 checkCollison Ball{..} Block{..} =
   let
-    center = ballPos ^+^ V2 ballRadius ballRadius -- 60 600
-    aabbHalfExtents = let (x, y) = blockSize in V2 x y ^/ 2 -- 133 50
-    aabbCenter = blockPos + aabbHalfExtents -- 133 150
-    difference = center - aabbCenter -- -73 450
+    center = ballPos ^+^ V2 ballRadius ballRadius
+    aabbHalfExtents = blockSize / 2
+    aabbCenter = blockPos + aabbHalfExtents
+    difference = center - aabbCenter
     clamped = clamp difference (-1 *^ aabbHalfExtents) aabbHalfExtents
     closest = aabbCenter + clamped
     diff = closest - center

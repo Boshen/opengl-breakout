@@ -8,11 +8,11 @@ import           Linear
 data GameState = GameState
   { gamePrograms  :: Map String GL.Program
   , gameBlocks    :: Map (V2 Float) Block
-  , gamePaddle    :: Maybe Paddle
+  , gamePaddle    :: Paddle
   , gameDimension :: (Float, Float)
   , gameTextures  :: Map String GL.TextureObject
   , gameMeshes    :: Map String Mesh
-  , gameBall      :: Maybe Ball
+  , gameBall      :: Ball
   , gameStatus    :: GameStatus
   } deriving (Show)
 
@@ -32,15 +32,13 @@ data Action
 
 data Block = Block
   { blockPos   :: V2 Float
+  , blockSize  :: V2 Float
   , blockLevel :: Int
-  , blockSize  :: (Float, Float)
-  , blockModel :: M44 Float
   } deriving (Show)
 
 data Paddle = Paddle
   { paddlePos   :: V2 Float
-  , paddleSize  :: (Float, Float)
-  , paddleModel :: M44 Float
+  , paddleSize  :: V2 Float
   } deriving (Show)
 
 data Mesh = Mesh
@@ -53,7 +51,6 @@ data Ball = Ball
   { ballPos      :: V2 Float
   , ballRadius   :: Float
   , ballVelocity :: V2 Float
-  , ballModel    :: M44 Float
   } deriving (Show)
 
 data Direction
