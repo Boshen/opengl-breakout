@@ -64,7 +64,7 @@ create = do
                   }
   makeBlocks
   makePaddle 0
-  makeBall (V3 40 (sh - 40) 0) (V3 0 0 0)
+  makeBall (V2 40 (sh - 40)) (V2 0 0)
   return window
 
 destroy :: SDL.Window -> Game ()

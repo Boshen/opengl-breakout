@@ -19,11 +19,11 @@ makePaddle x = do
     (sw, sh) = gameDimension
     sx = 100
     sy = 20
-    pos = V3 x (sh - sy) 0
+    y = sh - sy
     model =
-      mkTransformationMat (identity :: M33 Float) pos
+      mkTransformationMat (identity :: M33 Float) (V3 x y 0)
       !*! scaled (V4 sx sy 1 1)
-    paddle = Paddle { paddlePos = pos
+    paddle = Paddle { paddlePos = V2 x y
                     , paddleSize = (sx, sy)
                     , paddleModel = model
                     }
@@ -35,9 +35,9 @@ updatePaddle action = do
   gameState@GameState{..} <- get
   let
     (sw, sh) = gameDimension
-    (V3 pos _ _) = paddlePos . fromJust $ gamePaddle
+    (V2 pos _) = paddlePos . fromJust $ gamePaddle
   case action of
-    Move dx -> makePaddle (max 0 . min (sw - 100) $ pos + dx * 15)
+    Move dx -> makePaddle (max 0 . min (sw - 100) $ pos + dx * 50)
     _       -> return ()
 
 renderPaddle :: Game ()
@@ -65,24 +65,24 @@ makePaddleCollison = do
     let
       ball@Ball{..} = fromJust gameBall
       Paddle{..} = fromJust gamePaddle
-      V3 bx by _ = ballPos
-      V3 bvx bvy bvz = ballVelocity
+      V2 bx by = ballPos
+      V2 bvx bvy = ballVelocity
       px = fst paddleSize
-      V3 pos _ _ = paddlePos
+      V2 pos _ = paddlePos
       centerBoard = pos + px / 2
       distance = bx + ballRadius - centerBoard
       percentage = distance / (px / 2)
-      v = V3 (3 * percentage * 2) (-1 * abs bvy) bvz
+      v = V2 (3 * percentage * 2) (-1 * abs bvy)
       v' = signorm v ^* norm ballVelocity
     put $ gameState { gameBall = Just $ ball { ballVelocity = v' } }
 
 checkCollison :: Ball -> Paddle -> Bool
 checkCollison Ball{..} Paddle{..} =
   let
-    V3 px1 py1 _ = ballPos
+    V2 px1 py1 = ballPos
     sx1 = ballRadius
     sy1 = sx1
-    V3 px2 py2 _ = paddlePos
+    V2 px2 py2 = paddlePos
     (sx2, sy2) = paddleSize
     collisionX = px1 + sx1 >= px2 && px2 + sx2 >= px1
     collisionY = py1 + sy1 >= py2 && py2 + sy2 >= py1

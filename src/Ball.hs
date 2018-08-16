@@ -12,17 +12,18 @@ import           SDL                        (($=))
 import           Program
 import           State
 
-ballInitialVelocity :: V3 Float
-ballInitialVelocity = V3 8 (-8) 0
+ballInitialVelocity :: V2 Float
+ballInitialVelocity = V2 8 (-8)
 
-makeBall :: V3 Float -> V3 Float -> Game ()
+makeBall :: V2 Float -> V2 Float -> Game ()
 makeBall pos velocity = do
   gameState@GameState{..} <- get
   let
     radius = 20
     (sw, sh) = gameDimension
+    V2 x y = pos
     model =
-      mkTransformationMat (identity :: M33 Float) pos
+      mkTransformationMat (identity :: M33 Float) (V3 x y 0)
       !*! scaled (V4 radius radius 1 1)
     ball = Ball { ballPos = pos
                 , ballRadius = radius
@@ -40,12 +41,12 @@ updateBall dt = do
     ball@Ball{..} = fromJust gameBall
     (updateVelocity, updatedPos) = check $ ballPos + ballVelocity
 
-    check (V3 x y z)
-      | x <= 0 = (V3 (-1) 1 1 * ballVelocity, V3 0 y z)
-      | x + ballRadius >= sw = (V3 (-1) 1 1 * ballVelocity, V3 (sw - ballRadius) y z)
-      | y <= 0 = (V3 1 (-1) 1 * ballVelocity, V3 x 0 z)
-      | y + ballRadius >= sh = (V3 1 (-1) 1 * ballVelocity, V3 x (sh - ballRadius) z)
-      | otherwise = (ballVelocity, V3 x y z)
+    check (V2 x y)
+      | x <= 0 = (V2 (-1) 1 * ballVelocity, V2 0 y)
+      | x + ballRadius >= sw = (V2 (-1) 1 * ballVelocity, V2 (sw - ballRadius) y)
+      | y <= 0 = (V2 1 (-1) * ballVelocity, V2 x 0)
+      | y + ballRadius >= sh = (V2 1 (-1) * ballVelocity, V2 x (sh - ballRadius))
+      | otherwise = (ballVelocity, V2 x y)
 
   makeBall updatedPos updateVelocity
 
@@ -73,9 +74,9 @@ checkBallHitBottom = do
   let
     ball@Ball{..} = fromJust gameBall
     (sw, sh) = gameDimension
-    (V3 x y z) = ballPos
-    (V3 dx dy dz) = ballVelocity
+    (V2 x y) = ballPos
+    (V2 dx dy) = ballVelocity
   when (y + dy + ballRadius >= sh) $
     put $ gameState { gameStatus = GameStopped
-                    , gameBall = Just $ ball { ballVelocity = V3 0 0 0 }
+                    , gameBall = Just $ ball { ballVelocity = V2 0 0 }
                     }

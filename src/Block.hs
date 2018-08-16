@@ -3,8 +3,10 @@
 module Block where
 
 import           Control.Monad.State.Strict
+import           Data.Foldable              (maximumBy)
 import qualified Data.Map.Strict            as Map
 import           Data.Maybe
+import           Data.Ord                   (comparing)
 import           Data.Vector                (Vector)
 import qualified Data.Vector                as V
 import qualified Graphics.Rendering.OpenGL  as GL
@@ -39,23 +41,24 @@ makeBlock (i, j) = do
 
     let
       (sw, sh) = gameDimension
-      pos = V3 (fromIntegral i * sw / fromIntegral width) (fromIntegral j * sh / (4 * fromIntegral height)) 0
+      x = fromIntegral i * sw / fromIntegral width
+      y = fromIntegral j * sh / (4 * fromIntegral height)
       sx = sw / fromIntegral width
       sy = sh / fromIntegral height / 4
       rotate = axisAngle (V3 0 0 1) 0
 
       model =
-        mkTransformationMat (identity :: M33 Float) pos
+        mkTransformationMat (identity :: M33 Float) (V3 x y 0)
         !*! mkTransformationMat (identity :: M33 Float) (V3 (sx / 2) (sy / 2) 0)
         !*! mkTransformation rotate (V3 (-1 * sx / 2) (-1 * sy / 2) 0)
         !*! scaled (V4 sx sy 1 1)
 
-      block = Block { blockPos = pos
+      block = Block { blockPos = V2 x y
                     , blockSize = (sx, sy)
                     , blockLevel = level
                     , blockModel = model
                     }
-    put gameState { gameBlocks = Map.insert pos block gameBlocks }
+    put gameState { gameBlocks = Map.insert (V2 x y) block gameBlocks }
 
 renderBlocks :: Game ()
 renderBlocks = do
@@ -99,18 +102,44 @@ makeBlockCollison :: Game ()
 makeBlockCollison = do
   gameState@GameState{..} <- get
   let
-    blocks = Map.filter (not . checkCollison (fromJust gameBall)) gameBlocks
-  put $ gameState { gameBlocks = blocks }
+    ball@Ball{..} = fromJust gameBall
+  forM_ gameBlocks $ \block -> do
+    let
+      (collision, dir, V2 dx dy) = checkCollison ball block
+    when collision $ do
+      let
+        (dp, dv) = if dir == LEFT || dir == RIGHT
+                  then (V2 (ballRadius - abs dx) 0, V2 (-1) 1)
+                  else (V2 0 (ballRadius - abs dy), V2 1 (-1))
+        updatedBall = ball { ballPos = ballPos + dp
+                          , ballVelocity = ballVelocity * dv
+                          }
+      put $ gameState { gameBall = Just updatedBall
+                      , gameBlocks = Map.delete (blockPos block) gameBlocks
+                      }
 
-checkCollison :: Ball -> Block -> Bool
+clamp :: V2 Float -> V2 Float -> V2 Float -> V2 Float
+clamp (V2 x y) (V2 minx miny) (V2 maxx maxy) = V2 (min maxx . max minx $ x) (min maxy . max miny $ y)
+
+checkCollison :: Ball -> Block -> (Bool, Direction, V2 Float)
 checkCollison Ball{..} Block{..} =
   let
-    V3 px1 py1 _ = ballPos
-    sx1 = ballRadius
-    sy1 = sx1
-    V3 px2 py2 _ = blockPos
-    (sx2, sy2) = blockSize
-    collisionX = px1 + sx1 >= px2 && px2 + sx2 >= px1
-    collisionY = py1 + sy1 >= py2 && py2 + sy2 >= py1
+    center = ballPos ^+^ V2 ballRadius ballRadius -- 60 600
+    aabbHalfExtents = let (x, y) = blockSize in V2 x y ^/ 2 -- 133 50
+    aabbCenter = blockPos + aabbHalfExtents -- 133 150
+    difference = center - aabbCenter -- -73 450
+    clamped = clamp difference (-1 *^ aabbHalfExtents) aabbHalfExtents
+    closest = aabbCenter + clamped
+    diff = closest - center
   in
-    collisionX && collisionY
+    if norm diff <= ballRadius
+    then (True, vectorDirection diff, diff)
+    else (False, UP, V2 0 0)
+
+vectorDirection :: V2 Float -> Direction
+vectorDirection target =
+  let
+    dir = [UP, RIGHT, DOWN, LEFT]
+    compass = [ V2 0 1, V2 1 0, V2 0 (-1), V2 (-1) 0 ]
+  in
+    fst . maximumBy (comparing snd) . zip dir $ map (`dot` signorm target) compass
