@@ -19,12 +19,9 @@ makeBall :: V2 Float -> V2 Float -> Ball
 makeBall pos velocity =
   Ball {ballPos = pos, ballRadius = 20, ballVelocity = velocity}
 
-updateBall :: Float -> Game ()
-updateBall _ = do
-  gameState@GameState {..} <- get
-  let (sw, sh) = gameDimension
-      Ball {..} = gameBall
-      (updateVelocity, updatedPos) = check $ ballPos + ballVelocity
+updateBall :: (Float, Float) -> Ball -> Ball
+updateBall (sw, sh) Ball{..} = do
+  let (updateVelocity, updatedPos) = check $ ballPos + ballVelocity
       check (V2 x y)
         | x <= 0 = (V2 (-1) 1 * ballVelocity, V2 0 y)
         | x + ballRadius >= sw =
@@ -33,7 +30,7 @@ updateBall _ = do
         | y + ballRadius >= sh =
           (V2 1 (-1) * ballVelocity, V2 x (sh - ballRadius))
         | otherwise = (ballVelocity, V2 x y)
-  put gameState {gameBall = makeBall updatedPos updateVelocity}
+  makeBall updatedPos updateVelocity
 
 renderBall :: Game ()
 renderBall = do
@@ -55,12 +52,8 @@ renderBall = do
     GL.bindVertexArrayObject $= Just meshVAO
     GL.drawArrays GL.Triangles 0 meshLength
 
-checkBallHitBottom :: Game ()
-checkBallHitBottom = do
-  gameState@GameState {..} <- get
-  let ball@Ball {..} = gameBall
-  when
-    ((ballPos ^. _y) + (ballVelocity ^. _y) + ballRadius >= snd gameDimension) $
-    put $
-    gameState
-      {gameStatus = GameStopped, gameBall = ball {ballVelocity = V2 0 0}}
+ballHitBottom :: (Float, Float) -> Ball -> Ball
+ballHitBottom (_, h) ball@Ball{..} =
+  if (ballPos ^. _y) + (ballVelocity ^. _y) + ballRadius >= h
+  then ball {ballVelocity = V2 0 0}
+  else ball

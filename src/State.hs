@@ -16,15 +16,9 @@ data GameState = GameState
   , gameTextures  :: Map String GL.TextureObject
   , gameMeshes    :: Map String Mesh
   , gameBall      :: Ball
-  , gameStatus    :: GameStatus
   } deriving (Show)
 
 type Game = StateT GameState IO
-
-data GameStatus
-  = GameStarted
-  | GameStopped
-  deriving (Show, Eq)
 
 data Action
   = NoOp

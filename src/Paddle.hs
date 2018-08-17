@@ -4,6 +4,7 @@ module Paddle where
 
 import           Control.Lens
 import           Control.Monad.State.Strict
+import           Data.Foldable
 import qualified Data.Map.Strict            as Map
 import           Graphics.Rendering.OpenGL  (($=))
 import qualified Graphics.Rendering.OpenGL  as GL
@@ -19,17 +20,16 @@ makePaddle (_, sh) x = do
       y = sh - (paddleSize ^. _y)
   Paddle {paddlePos = V2 x y, paddleSize = paddleSize}
 
-updatePaddle :: Action -> Game ()
-updatePaddle action = do
-  gameState@GameState {..} <- get
-  let (sw, _) = gameDimension
-      (V2 pos _) = paddlePos gamePaddle
-  case action of
-    Move dx -> do
-      let paddle =
-            makePaddle gameDimension (max 0 . min (sw - 100) $ pos + dx * 50)
-      put gameState {gamePaddle = paddle}
-    _ -> return ()
+updatePaddle :: (Float, Float) -> Paddle -> [Action] -> Paddle
+updatePaddle gameDimension = foldl' updatePaddle'
+  where
+    updatePaddle' paddle action =
+      case action of
+        Move dx ->
+          let (sw, _) = gameDimension
+              (V2 pos _) = paddlePos paddle
+           in makePaddle gameDimension (max 0 . min (sw - 100) $ pos + dx * 50)
+        _ -> paddle
 
 renderPaddle :: Game ()
 renderPaddle = do
@@ -51,18 +51,16 @@ renderPaddle = do
     GL.bindVertexArrayObject $= Just meshVAO
     GL.drawArrays GL.Triangles 0 meshLength
 
-makePaddleCollison :: Game ()
-makePaddleCollison = do
-  gameState@GameState {..} <- get
-  when (checkCollison gameBall gamePaddle) $ do
-    let ball@Ball {..} = gameBall
-        Paddle {..} = gamePaddle
-        centerBoard = (paddlePos ^. _x) + paddleSize ^. _x / 2
-        dist = (ballPos ^. _x) + ballRadius - centerBoard
-        percentage = dist / (paddleSize ^. _x / 2)
-        v = V2 (3 * percentage * 2) (-1 * abs (ballVelocity ^. _y))
-        v' = signorm v ^* norm ballVelocity
-    put $ gameState {gameBall = ball {ballVelocity = v'}}
+makePaddleCollison :: Paddle -> Ball -> Ball
+makePaddleCollison paddle@Paddle {..} ball@Ball {..} =
+  if checkCollison ball paddle
+    then let centerBoard = (paddlePos ^. _x) + paddleSize ^. _x / 2
+             dist = (ballPos ^. _x) + ballRadius - centerBoard
+             percentage = dist / (paddleSize ^. _x / 2)
+             v = V2 (3 * percentage * 2) (-1 * abs (ballVelocity ^. _y))
+             v' = signorm v ^* norm ballVelocity
+          in ball {ballVelocity = v'}
+    else ball
 
 checkCollison :: (Collidable a, Collidable b) => a -> b -> Bool
 checkCollison a b =

@@ -64,7 +64,6 @@ create = do
                      , gameDimension = gameDimension
                      , gameTextures = textures
                      , gameMeshes = meshes
-                     , gameStatus = GameStopped
                      }
   return (window, st)
 
@@ -87,20 +86,20 @@ loop window lastFrame = do
 
   currentFrame <- SDL.time
   let dt = currentFrame - lastFrame
-
-  mapM_ updatePaddle actions
-  makeBlockCollison
-  makePaddleCollison
-  checkBallHitBottom
-  updateBall dt
+      paddle = updatePaddle gameDimension gamePaddle actions
+      (ball', blocks) = makeBlockCollison gameBall gameBlocks
+      ball = ballHitBottom gameDimension . updateBall gameDimension . makePaddleCollison paddle $ ball'
+  put gameState { gamePaddle = paddle
+                , gameBall = ball
+                , gameBlocks = blocks
+                }
 
   renderBlocks
   renderPaddle
   renderBall
 
-  when (StartGame `elem` actions && gameStatus == GameStopped) $
-    put $ gameState { gameStatus = GameStarted
-                    , gameBall = gameBall { ballVelocity = ballInitialVelocity }
+  when (StartGame `elem` actions && ballVelocity ball == V2 0 0) $
+    put $ gameState { gameBall = gameBall { ballVelocity = ballInitialVelocity }
                     }
 
   -- clear frame

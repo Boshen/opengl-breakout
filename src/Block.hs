@@ -4,9 +4,10 @@ module Block where
 
 import           Control.Lens
 import           Control.Monad.State.Strict
-import           Data.Foldable              (maximumBy)
+import           Data.Foldable              (find, maximumBy)
 import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict            as Map
+import           Data.Maybe
 import           Data.Ord                   (comparing)
 import           Data.Vector                (Vector)
 import qualified Data.Vector                as V
@@ -35,7 +36,6 @@ makeBlocks dimen = Map.fromList $ map (makeBlock dimen) [(i, j) | i <- [0..width
 makeBlock :: (Float, Float) -> (Int, Int) -> (V2 Float, Block)
 makeBlock gameDimension (i, j) =
   let level = blocks V.! (j * width + i)
-
       (sw, sh) = gameDimension
       x = fromIntegral i * sw / fromIntegral width
       y = fromIntegral j * sh / (4 * fromIntegral height)
@@ -93,30 +93,26 @@ renderBlock Block{..} = do
     GL.bindVertexArrayObject $= Just meshVAO
     GL.drawArrays GL.Triangles 0 meshLength
 
-makeBlockCollison :: Game ()
-makeBlockCollison = do
-  gameState@GameState{..} <- get
+makeBlockCollison :: Ball -> Map (V2 Float) Block -> (Ball, Map (V2 Float) Block)
+makeBlockCollison ball@Ball{..} blocks =
   let
-    ball@Ball{..} = gameBall
-  forM_ gameBlocks $ \blk -> do
-    let
-      (collision, dir, V2 dx dy) = checkCollison ball blk
-    when collision $ do
-      let
-        (dp, dv) = if dir == LEFT || dir == RIGHT
-                  then (V2 (ballRadius - abs dx) 0, V2 (-1) 1)
-                  else (V2 0 (ballRadius - abs dy), V2 1 (-1))
-        updatedBall = ball { ballPos = ballPos + dp
-                          , ballVelocity = ballVelocity * dv
-                          }
-      put $ gameState { gameBall = updatedBall
-                      , gameBlocks = Map.delete (blockPos blk) gameBlocks
-                      }
+    collisions = map (checkCollison ball) (Map.elems blocks)
+  in
+    case find isJust collisions of
+      Nothing -> (ball, blocks)
+      Just Nothing -> (ball, blocks)
+      Just (Just (blk, dir, V2 dx dy)) ->
+        let
+          (dp, dv) = if dir == LEFT || dir == RIGHT
+                    then (V2 (ballRadius - abs dx) 0, V2 (-1) 1)
+                    else (V2 0 (ballRadius - abs dy), V2 1 (-1))
+          updatedBall = ball { ballPos = ballPos + dp
+                             , ballVelocity = ballVelocity * dv
+                             }
+        in
+          (updatedBall, Map.delete (blockPos blk) blocks)
 
-clamp :: V2 Float -> V2 Float -> V2 Float -> V2 Float
-clamp (V2 x y) (V2 minx miny) (V2 maxx maxy) = V2 (min maxx . max minx $ x) (min maxy . max miny $ y)
-
-checkCollison :: (Collidable a, Collidable b) => a -> b -> (Bool, Direction, V2 Float)
+checkCollison :: (Collidable a) => a -> Block -> Maybe (Block, Direction, V2 Float)
 checkCollison a b =
   let
     center = pos a ^+^ size a
@@ -128,8 +124,11 @@ checkCollison a b =
     diff = closest - center
   in
     if norm diff <= size a ^._x
-    then (True, vectorDirection diff, diff)
-    else (False, UP, V2 0 0)
+    then Just (b, vectorDirection diff, diff)
+    else Nothing
+
+clamp :: V2 Float -> V2 Float -> V2 Float -> V2 Float
+clamp (V2 x y) (V2 minx miny) (V2 maxx maxy) = V2 (min maxx . max minx $ x) (min maxy . max miny $ y)
 
 vectorDirection :: V2 Float -> Direction
 vectorDirection target =
