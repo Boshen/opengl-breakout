@@ -5,8 +5,8 @@ module Block where
 import           Control.Lens
 import           Control.Monad.State.Strict
 import           Data.Foldable              (maximumBy)
+import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict            as Map
-import Data.Map.Strict (Map)
 import           Data.Ord                   (comparing)
 import           Data.Vector                (Vector)
 import qualified Data.Vector                as V
@@ -14,6 +14,7 @@ import           Graphics.Rendering.OpenGL  (($=))
 import qualified Graphics.Rendering.OpenGL  as GL
 import           Linear
 
+import           Collidable
 import           Program
 import           State
 
@@ -115,18 +116,18 @@ makeBlockCollison = do
 clamp :: V2 Float -> V2 Float -> V2 Float -> V2 Float
 clamp (V2 x y) (V2 minx miny) (V2 maxx maxy) = V2 (min maxx . max minx $ x) (min maxy . max miny $ y)
 
-checkCollison :: Ball -> Block -> (Bool, Direction, V2 Float)
-checkCollison Ball{..} Block{..} =
+checkCollison :: (Collidable a, Collidable b) => a -> b -> (Bool, Direction, V2 Float)
+checkCollison a b =
   let
-    center = ballPos ^+^ V2 ballRadius ballRadius
-    aabbHalfExtents = blockSize / 2
-    aabbCenter = blockPos + aabbHalfExtents
+    center = pos a ^+^ size a
+    aabbHalfExtents = size b / 2
+    aabbCenter = pos b + aabbHalfExtents
     difference = center - aabbCenter
     clamped = clamp difference (-1 *^ aabbHalfExtents) aabbHalfExtents
     closest = aabbCenter + clamped
     diff = closest - center
   in
-    if norm diff <= ballRadius
+    if norm diff <= size a ^._x
     then (True, vectorDirection diff, diff)
     else (False, UP, V2 0 0)
 

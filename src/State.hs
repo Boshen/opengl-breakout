@@ -1,5 +1,8 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module State where
 
+import           Collidable
 import           Control.Monad.State.Strict
 import           Data.Map.Strict            (Map)
 import qualified Graphics.Rendering.OpenGL  as GL
@@ -37,8 +40,8 @@ data Block = Block
   } deriving (Show)
 
 data Paddle = Paddle
-  { paddlePos   :: V2 Float
-  , paddleSize  :: V2 Float
+  { paddlePos  :: V2 Float
+  , paddleSize :: V2 Float
   } deriving (Show)
 
 data Mesh = Mesh
@@ -59,3 +62,15 @@ data Direction
   | DOWN
   | LEFT
   deriving (Eq)
+
+instance Collidable Ball where
+  pos = ballPos
+  size Ball { ballRadius } = V2 ballRadius ballRadius
+
+instance Collidable Block where
+  pos = blockPos
+  size = blockSize
+
+instance Collidable Paddle where
+  pos = paddlePos
+  size = paddleSize

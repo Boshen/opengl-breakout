@@ -9,6 +9,7 @@ import           Graphics.Rendering.OpenGL  (($=))
 import qualified Graphics.Rendering.OpenGL  as GL
 import           Linear
 
+import           Collidable
 import           Program
 import           State
 
@@ -63,11 +64,12 @@ makePaddleCollison = do
         v' = signorm v ^* norm ballVelocity
     put $ gameState {gameBall = ball {ballVelocity = v'}}
 
-checkCollison :: Ball -> Paddle -> Bool
-checkCollison Ball {..} Paddle {..} =
-  let V2 px1 py1 = ballPos
-      V2 px2 py2 = paddlePos
-      V2 sx2 sy2 = paddleSize
-      collisionX = px1 + ballRadius >= px2 && px2 + sx2 >= px1
-      collisionY = py1 + ballRadius >= py2 && py2 + sy2 >= py1
+checkCollison :: (Collidable a, Collidable b) => a -> b -> Bool
+checkCollison a b =
+  let V2 px1 py1 = pos a
+      V2 px2 py2 = pos b
+      V2 sx1 sy1 = size a
+      V2 sx2 sy2 = size b
+      collisionX = px1 + sx1 >= px2 && px2 + sx2 >= px1
+      collisionY = py1 + sy1 >= py2 && py2 + sy2 >= py1
    in collisionX && collisionY
