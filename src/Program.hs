@@ -15,26 +15,36 @@ import           Textures
 block :: String
 block = "block"
 
-programs :: [(String, String, String)]
-programs = [(block, "./shaders/block.vert", "./shaders/block.frag")]
+particle :: String
+particle = "particle"
 
-uniforms :: [(String, GL.AttribLocation)]
-uniforms =
-  map
-    (\(i, name) -> (name, GL.AttribLocation i))
-    (zip [0 ..] ["model", "projection", "image", "blockColor"])
+programs :: [(String, String, String, [String])]
+programs =
+  [ ( block
+    , "./shaders/block.vert"
+    , "./shaders/block.frag"
+    , ["model", "projection", "image", "blockColor"])
+  , ( particle
+    , "./shaders/particle.vert"
+    , "./shaders/particle.frag"
+    , ["offset", "color"])
+  ]
+
+getUniforms :: [String] -> [(String, GL.AttribLocation)]
+getUniforms names =
+  map (\(i, name) -> (name, GL.AttribLocation i)) (zip [0 ..] names)
 
 buildPrograms :: IO (Map String GL.Program)
 buildPrograms = Map.fromList <$> mapM buildProgram programs
 
-buildProgram :: (String, String, String) -> IO (String, GL.Program)
-buildProgram (name, vert, frag) = do
+buildProgram :: (String, String, String, [String]) -> IO (String, GL.Program)
+buildProgram (name, vert, frag, uniforms) = do
   program <-
     loadShaders
       [ ShaderInfo GL.VertexShader (FileSource vert)
       , ShaderInfo GL.FragmentShader (FileSource frag)
       ]
-  mapM_ (\(nm, loc) -> GL.attribLocation program nm $= loc) uniforms
+  mapM_ (\(nm, loc) -> GL.attribLocation program nm $= loc) (getUniforms uniforms)
   return (name, program)
 
 setUniform :: GL.Uniform a => GL.Program -> String -> a -> IO ()
@@ -50,11 +60,12 @@ loadTex f = either error id <$> readTexture f
 
 buildTextures :: IO (Map String GL.TextureObject)
 buildTextures =
-  Map.fromList <$> mapM buildTexture ["block", "paddle", "awesomeface"]
+  Map.fromList <$> mapM buildTexture ["block", "paddle", "awesomeface", "particle"]
 
 buildTexture :: String -> IO (String, GL.TextureObject)
 buildTexture name = do
   tx <- loadTex (name ++ ".png")
+
   GL.textureFilter GL.Texture2D $= ((GL.Linear', Nothing), GL.Linear')
   texture2DWrap $= (GL.Repeated, GL.ClampToEdge)
   GL.texture GL.Texture2D $= GL.Enabled

@@ -5,6 +5,7 @@ module State where
 import           Collidable
 import           Control.Monad.State.Strict
 import           Data.Map.Strict            (Map)
+import           Data.Vector
 import qualified Graphics.Rendering.OpenGL  as GL
 import           Linear
 
@@ -12,6 +13,7 @@ data GameState = GameState
   { gamePrograms  :: Map String GL.Program
   , gameBlocks    :: Map (V2 Float) Block
   , gamePaddle    :: Paddle
+  , gameParticles :: Vector Particle
   , gameDimension :: (Float, Float)
   , gameTextures  :: Map String GL.TextureObject
   , gameMeshes    :: Map String Mesh
@@ -68,3 +70,10 @@ instance Collidable Block where
 instance Collidable Paddle where
   pos = paddlePos
   size = paddleSize
+
+data Particle = Particle
+  { particlePos      :: V2 Float
+  , particleVelocity :: V2 Float
+  , particleColor    :: V4 Float
+  , particleLife     :: Float
+  } deriving (Show)
